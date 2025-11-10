@@ -89,7 +89,7 @@ export default function Chat() {
     const userMessage: Message = {
       id: `user_${Date.now()}`,
       role: 'user',
-      content: '舌苔照片 / Tongue Image',
+      content: 'Tongue Image / 舌苔照片',
       imageUrl: imagePreviewUrl || undefined
     };
 
@@ -116,7 +116,7 @@ export default function Chat() {
         ...prev,
         {
           role: 'assistant',
-          content: data.diagnosis || '无法分析舌苔图片',
+          content: data.diagnosis || 'Unable to analyze image',
           id: `msg_${Date.now()}`
         }
       ]);
@@ -144,24 +144,22 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
+    <div className="flex flex-col h-screen bg-white">
       {/* Header */}
-      <header className="bg-white border-b border-emerald-200 px-6 py-4 shadow-sm">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold text-emerald-800">神针GPT 中医咨询</h1>
-          <p className="text-sm text-emerald-600 mt-1">ShizhenGPT Traditional Chinese Medicine Consultation</p>
+      <header className="border-b border-gray-200 px-4 sm:px-6 py-3 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-lg font-semibold text-gray-900">TCM Consultation</h1>
         </div>
       </header>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+        <div className="max-w-3xl mx-auto space-y-3">
           {messages.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">🏥</div>
-              <h2 className="text-xl font-semibold text-emerald-800 mb-2">欢迎使用神针GPT</h2>
-              <p className="text-emerald-600">请描述您的症状，我将为您提供中医诊疗建议</p>
-              <p className="text-sm text-emerald-500 mt-2">Please describe your symptoms for TCM consultation</p>
+            <div className="text-center py-12 sm:py-16">
+              <div className="text-4xl sm:text-5xl mb-4">🏥</div>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome</h2>
+              <p className="text-sm sm:text-base text-gray-600">Describe your symptoms for Traditional Chinese Medicine consultation</p>
             </div>
           )}
 
@@ -171,35 +169,32 @@ export default function Chat() {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
+                className={`max-w-[85%] sm:max-w-[75%] md:max-w-[65%] rounded-lg px-3 sm:px-4 py-2 sm:py-3 ${
                   message.role === 'user'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-white text-gray-800 border border-emerald-100'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-gray-900 border border-gray-200'
                 }`}
               >
-                <div className="text-xs font-semibold mb-1 opacity-70">
-                  {message.role === 'user' ? '您' : '神针GPT'}
-                </div>
                 {message.imageUrl && (
                   <img
                     src={message.imageUrl}
                     alt="Tongue"
-                    className="rounded-lg mb-2 max-w-sm"
+                    className="rounded-lg mb-2 max-w-full h-auto border border-gray-200"
+                    style={{ maxHeight: '300px' }}
                   />
                 )}
-                <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                <div className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">{message.content}</div>
               </div>
             </div>
           ))}
 
           {isLoading && (
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-white border border-emerald-100 shadow-sm">
-                <div className="text-xs font-semibold mb-1 text-gray-500">神针GPT</div>
+              <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[65%] rounded-lg px-3 sm:px-4 py-2 sm:py-3 bg-white border border-gray-200">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
               </div>
             </div>
@@ -207,9 +202,9 @@ export default function Chat() {
 
           {error && (
             <div className="flex justify-center">
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg max-w-md">
-                <p className="font-semibold">连接错误 / Connection Error</p>
-                <p className="text-sm mt-1">无法连接到服务器，请确认后端服务正在运行</p>
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg max-w-md text-sm sm:text-base">
+                <p className="font-semibold">Connection Error</p>
+                <p className="text-sm mt-1">Unable to connect to server</p>
                 <p className="text-xs mt-1 opacity-75">{error}</p>
               </div>
             </div>
@@ -220,34 +215,36 @@ export default function Chat() {
       </div>
 
       {/* Input Area */}
-      <div className="bg-white border-t border-emerald-200 px-6 py-4 shadow-lg">
-        <div className="max-w-4xl mx-auto">
+      <div className="border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4 bg-white">
+        <div className="max-w-3xl mx-auto">
           {/* Image Preview */}
           {imagePreviewUrl && (
             <div className="mb-3 relative inline-block">
               <img
                 src={imagePreviewUrl}
                 alt="Captured tongue"
-                className="rounded-lg max-h-40 border-2 border-emerald-200"
+                className="rounded-lg max-h-32 sm:max-h-40 max-w-full h-auto border border-gray-200"
               />
               <button
                 onClick={clearImage}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
+                aria-label="Remove image"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex gap-3">
+          <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setShowCamera(true)}
               disabled={isLoading}
-              className="px-4 py-3 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              title="拍摄舌苔 / Capture Tongue"
+              className="px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center min-h-[44px]"
+              title="Capture Tongue Image"
+              aria-label="Open camera"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -260,9 +257,9 @@ export default function Chat() {
                 type="button"
                 onClick={handleImageSubmit}
                 disabled={isLoading}
-                className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm sm:text-base min-h-[44px]"
               >
-                {isLoading ? '分析中...' : '分析舌苔 / Analyze Tongue'}
+                {isLoading ? 'Analyzing...' : 'Analyze Tongue'}
               </button>
             ) : (
               <>
@@ -270,16 +267,16 @@ export default function Chat() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="请描述您的症状... (例如：手脚冰凉，经常怕冷)"
-                  className="flex-1 px-4 py-3 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  placeholder="Describe your symptoms..."
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900 text-sm sm:text-base min-h-[44px]"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm sm:text-base min-h-[44px]"
                 >
-                  {isLoading ? '发送中...' : '发送'}
+                  {isLoading ? 'Sending...' : 'Send'}
                 </button>
               </>
             )}
@@ -292,9 +289,9 @@ export default function Chat() {
                 setError(null);
                 clearImage();
               }}
-              className="mt-3 text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+              className="mt-3 text-xs sm:text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
-              清空对话 / Clear Conversation
+              Clear Conversation
             </button>
           )}
         </div>

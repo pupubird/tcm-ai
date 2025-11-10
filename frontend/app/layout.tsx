@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TCM Consultation",
-  description: "Traditional Chinese Medicine AI Consultation",
+  title: "中医咨询",
+  description: "中医人工智能咨询服务",
 };
 
 export default function RootLayout({

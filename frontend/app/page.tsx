@@ -17,6 +17,7 @@ export default function Chat() {
   const [error, setError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState<Blob | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -77,28 +78,31 @@ export default function Chat() {
 
   const handleCameraCapture = (blob: Blob) => {
     setCapturedImage(blob);
+    const url = URL.createObjectURL(blob);
+    setImagePreviewUrl(url);
     setShowCamera(false);
   };
 
   const handleImageSubmit = async () => {
     if (!capturedImage || isLoading) return;
 
-    // Create URL only when submitting
-    const url = URL.createObjectURL(capturedImage);
-
     const userMessage: Message = {
       id: `user_${Date.now()}`,
       role: 'user',
       content: 'Tongue Image / 舌苔照片',
-      imageUrl: url
+      imageUrl: imagePreviewUrl || undefined
     };
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     setError(null);
 
-    // Clear the captured image immediately after adding to messages
+    // Clear the preview immediately after adding to messages
     setCapturedImage(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
 
     try {
       const formData = new FormData();
@@ -133,6 +137,10 @@ export default function Chat() {
 
   const clearImage = () => {
     setCapturedImage(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
   };
 
   return (
@@ -140,7 +148,7 @@ export default function Chat() {
       {/* Header */}
       <header className="border-b border-gray-200 px-4 sm:px-6 py-3 bg-white">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-lg font-semibold text-gray-900">TCM Consultation</h1>
+          <h1 className="text-lg font-semibold text-gray-900">中医咨询</h1>
         </div>
       </header>
 
@@ -150,8 +158,8 @@ export default function Chat() {
           {messages.length === 0 && (
             <div className="text-center py-12 sm:py-16">
               <div className="text-4xl sm:text-5xl mb-4">🏥</div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome</h2>
-              <p className="text-sm sm:text-base text-gray-600">Describe your symptoms for Traditional Chinese Medicine consultation</p>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">欢迎</h2>
+              <p className="text-sm sm:text-base text-gray-600">请描述您的症状以获取中医咨询</p>
             </div>
           )}
 
@@ -195,8 +203,8 @@ export default function Chat() {
           {error && (
             <div className="flex justify-center">
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg max-w-md text-sm sm:text-base">
-                <p className="font-semibold">Connection Error</p>
-                <p className="text-sm mt-1">Unable to connect to server</p>
+                <p className="font-semibold">连接错误</p>
+                <p className="text-sm mt-1">无法连接到服务器</p>
                 <p className="text-xs mt-1 opacity-75">{error}</p>
               </div>
             </div>
@@ -209,14 +217,34 @@ export default function Chat() {
       {/* Input Area */}
       <div className="border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4 bg-white">
         <div className="max-w-3xl mx-auto">
+          {/* Image Preview */}
+          {imagePreviewUrl && (
+            <div className="mb-3 relative inline-block">
+              <img
+                src={imagePreviewUrl}
+                alt="舌苔照片"
+                className="rounded-lg max-h-32 sm:max-h-40 max-w-full h-auto border border-gray-200"
+              />
+              <button
+                onClick={clearImage}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
+                aria-label="删除图片"
+              >
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setShowCamera(true)}
               disabled={isLoading}
               className="px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center min-h-[44px]"
-              title="Capture Tongue Image"
-              aria-label="Open camera"
+              title="拍摄舌苔照片"
+              aria-label="打开相机"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -231,7 +259,7 @@ export default function Chat() {
                 disabled={isLoading}
                 className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm sm:text-base min-h-[44px]"
               >
-                {isLoading ? 'Analyzing...' : 'Analyze Tongue'}
+                {isLoading ? '分析中...' : '分析舌象'}
               </button>
             ) : (
               <>
@@ -239,7 +267,7 @@ export default function Chat() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Describe your symptoms..."
+                  placeholder="请描述您的症状..."
                   className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900 text-sm sm:text-base min-h-[44px]"
                   disabled={isLoading}
                 />
@@ -248,7 +276,7 @@ export default function Chat() {
                   disabled={isLoading || !input.trim()}
                   className="px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors text-sm sm:text-base min-h-[44px]"
                 >
-                  {isLoading ? 'Sending...' : 'Send'}
+                  {isLoading ? '发送中...' : '发送'}
                 </button>
               </>
             )}
@@ -263,7 +291,7 @@ export default function Chat() {
               }}
               className="mt-3 text-xs sm:text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
-              Clear Conversation
+              清空对话
             </button>
           )}
         </div>

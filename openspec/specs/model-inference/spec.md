@@ -30,19 +30,32 @@ The system SHALL accept text queries and return Traditional Chinese Medicine dia
 - **THEN** return status 400 with error message
 
 ### Requirement: Vision-Based Tongue Diagnosis
-The system SHALL accept tongue images and provide TCM interpretation (望诊).
+The system SHALL accept tongue images via multipart form upload.
 
-#### Scenario: Tongue image analysis
-- **WHEN** POST `/v1/vision/analyze` with multipart form containing `image` (PNG file) and `query` ("请从中医角度解读这张舌苔。")
-- **THEN** return JSON with `{"diagnosis": "<TCM interpretation>", "image_received": true, "model_used": "ShizhenGPT-7B-VL"}`
+#### Scenario: Multipart file upload
+- **WHEN** client sends POST to `/v1/vision/analyze` with `Content-Type: multipart/form-data`
+- **AND** includes `image` file field and optional `query` text field
+- **THEN** system processes image and returns TCM diagnosis in JSON
 
-#### Scenario: Unsupported image format
-- **WHEN** POST `/v1/vision/analyze` with non-image file (e.g., .txt)
-- **THEN** return status 415 with error "Unsupported media type"
+#### Scenario: Missing image error
+- **WHEN** client sends request without image
+- **THEN** system returns 400 Bad Request with error "No image provided"
 
-#### Scenario: Missing query parameter
-- **WHEN** POST `/v1/vision/analyze` with image but no `query` field
-- **THEN** use default query "请从中医角度解读这张舌苔。"
+#### Scenario: Invalid image format
+- **WHEN** client uploads non-image file (e.g., text, PDF)
+- **THEN** system returns 415 Unsupported Media Type with error "Invalid image format"
+
+#### Scenario: Diagnosis response format
+- **WHEN** vision analysis completes successfully
+- **THEN** system returns JSON: `{"diagnosis": "<TCM analysis text>", "success": true, "model": "ShizhenGPT-32B-VL"}`
+
+#### Scenario: Large image handling
+- **WHEN** client uploads image >10MB
+- **THEN** system returns 413 Request Entity Too Large (FastAPI default limit)
+
+#### Scenario: Vision inference timeout
+- **WHEN** model processing exceeds 60 seconds
+- **THEN** system returns 504 Gateway Timeout
 
 ### Requirement: Model Information
 The system SHALL expose loaded model metadata.
@@ -72,4 +85,15 @@ The system SHALL provide clear error messages for inference failures.
 #### Scenario: Out of memory error
 - **WHEN** model fails to load due to insufficient memory
 - **THEN** log error and return status 500 with "Insufficient memory to load model"
+
+### Requirement: Request Format Logging
+The system SHALL log image upload details for debugging.
+
+#### Scenario: Log multipart uploads
+- **WHEN** multipart image is received
+- **THEN** log: image filename, size (bytes), content type, PIL format and dimensions
+
+#### Scenario: Log inference timing
+- **WHEN** vision analysis completes
+- **THEN** log: processing time (seconds), VRAM usage before/after
 

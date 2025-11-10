@@ -2,21 +2,16 @@
 
 ## MODIFIED Requirements
 
-### Requirement: Vision Analysis API
-The system SHALL accept tongue images via multipart form upload or base64 JSON.
+### Requirement: Vision-Based Tongue Diagnosis
+The system SHALL accept tongue images via multipart form upload.
 
 #### Scenario: Multipart file upload
 - **WHEN** client sends POST to `/v1/vision/analyze` with `Content-Type: multipart/form-data`
-- **AND** includes `image` file field and `query` text field
+- **AND** includes `image` file field and optional `query` text field
 - **THEN** system processes image and returns TCM diagnosis in JSON
 
-#### Scenario: Base64 JSON upload (backward compatibility)
-- **WHEN** client sends POST to `/v1/vision/analyze` with `Content-Type: application/json`
-- **AND** includes `{"image": "data:image/jpeg;base64,...", "query": "..."}`
-- **THEN** system processes image and returns same diagnosis format
-
 #### Scenario: Missing image error
-- **WHEN** client sends request without image in either format
+- **WHEN** client sends request without image
 - **THEN** system returns 400 Bad Request with error "No image provided"
 
 #### Scenario: Invalid image format
@@ -42,11 +37,7 @@ The system SHALL log image upload details for debugging.
 
 #### Scenario: Log multipart uploads
 - **WHEN** multipart image is received
-- **THEN** log: image filename, size (bytes), content type, query text
-
-#### Scenario: Log base64 uploads
-- **WHEN** base64 image is received
-- **THEN** log: decoded image size, format detected by PIL
+- **THEN** log: image filename, size (bytes), content type, PIL format and dimensions
 
 #### Scenario: Log inference timing
 - **WHEN** vision analysis completes

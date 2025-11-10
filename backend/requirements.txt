@@ -1,11 +1,11 @@
 # Core dependencies for ShizhenGPT-32B-VL deployment
-torch==2.1.0
-transformers==4.46.0
-accelerate==0.34.0
-qwen-vl-utils==0.0.5
-fastapi==0.115.0
-uvicorn[standard]==0.30.0
-python-multipart==0.0.9
-pillow==10.4.0
-pydantic==2.9.0
-huggingface-hub==0.25.0
+# torch already installed in RunPod template (2.8.0+cu128)
+transformers>=4.46.0
+accelerate>=0.34.0
+qwen-vl-utils
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart
+pillow
+pydantic>=2.0.0
+huggingface-hub

@@ -3,8 +3,19 @@ ShizhenGPT-32B-VL FastAPI Server
 Deploys Traditional Chinese Medicine AI model on RunPod A100 80GB
 """
 import os
+
+# Configure model cache to persistent volume
+# MUST be set before importing transformers
+os.environ['HF_HOME'] = '/workspace/models'
+os.environ['TRANSFORMERS_CACHE'] = '/workspace/models'
+os.environ['HF_HUB_CACHE'] = '/workspace/models'
+os.environ['HUGGINGFACE_HUB_CACHE'] = '/workspace/models'
+
+# Create cache directory
+os.makedirs('/workspace/models', exist_ok=True)
+
 import torch
-from fastapi import FastAPI, HTTPException, File, Form, UploadFile
+from fastapi import FastAPI, HTTPException, File, Form, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -14,16 +25,6 @@ import base64
 from io import BytesIO
 from PIL import Image
 import time
-
-# Configure model cache to persistent volume
-# Must be set before importing transformers
-os.environ['HF_HOME'] = '/workspace/models'
-os.environ['TRANSFORMERS_CACHE'] = '/workspace/models'
-os.environ['HF_HUB_CACHE'] = '/workspace/models'
-os.environ['HUGGINGFACE_HUB_CACHE'] = '/workspace/models'
-
-# Create cache directory
-os.makedirs('/workspace/models', exist_ok=True)
 
 app = FastAPI(title="ShizhenGPT API", version="1.0.0")
 
@@ -199,42 +200,39 @@ async def chat_completions(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
 
 @app.post("/v1/vision/analyze")
-async def vision_analyze(
-    image: Optional[UploadFile] = File(None),
-    query: Optional[str] = Form(None)
-):
+async def vision_analyze(request: Request):
     """
-    Analyze tongue image for TCM diagnosis
-    Supports both multipart/form-data and base64 JSON formats
+    Analyze tongue image for TCM diagnosis via multipart/form-data
 
     Multipart format:
-        - image: file upload
+        - image: file upload (required)
         - query: text field (optional)
-
-    JSON format (backward compatibility):
-        - POST with Content-Type: application/json
-        - Body: {"image": "base64...", "query": "..."}
     """
     if not model_loaded:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     start_time = time.time()
     pil_image = None
-    query_text = query or "请从中医角度解读这张舌苔。分析舌色、苔色、舌形、润燥等特征，并给出对应的中医证型和调理建议。"
+    query_text = "请从中医角度解读这张舌苔。分析舌色、苔色、舌形、润燥等特征，并给出对应的中医证型和调理建议。"
 
     try:
-        # Handle multipart upload
-        if image:
-            print(f"📸 Multipart upload: {image.filename}, {image.content_type}")
-            image_data = await image.read()
-            print(f"   Image size: {len(image_data)} bytes")
-            pil_image = Image.open(BytesIO(image_data))
-            print(f"   PIL format: {pil_image.format}, size: {pil_image.size}")
+        # Parse multipart form data
+        form = await request.form()
+        image_file = form.get("image")
+        query_form = form.get("query")
 
-        # If no multipart image, check if this might be JSON (backward compatibility)
-        # Note: FastAPI with File() param won't parse JSON body, so this is just for clarity
-        if not pil_image:
-            raise HTTPException(status_code=400, detail="No image provided. Send as multipart/form-data with 'image' field.")
+        if not image_file:
+            raise HTTPException(status_code=400, detail="No image provided")
+
+        if query_form:
+            query_text = str(query_form)
+
+        # Handle multipart upload
+        print(f"📸 Multipart upload: {image_file.filename}, {image_file.content_type}")
+        image_data = await image_file.read()
+        print(f"   Image size: {len(image_data)} bytes")
+        pil_image = Image.open(BytesIO(image_data))
+        print(f"   PIL format: {pil_image.format}, size: {pil_image.size}")
 
         # Prepare multimodal messages
         messages = [

@@ -6,7 +6,7 @@ set -e  # Exit on error
 echo "🚀 Starting RunPod deployment..."
 
 # Configuration
-POD_SSH="3wzca59jx2ytll-64410b8c@ssh.runpod.io"
+POD_SSH="root@38.128.232.104 -p 29629"
 SSH_KEY="$HOME/.ssh/id_rsa"
 REMOTE_DIR="/workspace/shizhengpt"
 
@@ -19,11 +19,11 @@ cp server.py /tmp/shizhengpt_deploy/
 cp requirements.txt /tmp/shizhengpt_deploy/
 
 echo "📤 Uploading files to RunPod..."
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no $POD_SSH "mkdir -p $REMOTE_DIR"
-scp -i $SSH_KEY -o StrictHostKeyChecking=no /tmp/shizhengpt_deploy/* $POD_SSH:$REMOTE_DIR/
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no -p 29629 root@38.128.232.104 "mkdir -p $REMOTE_DIR"
+scp -i $SSH_KEY -o StrictHostKeyChecking=no -P 29629 /tmp/shizhengpt_deploy/* root@38.128.232.104:$REMOTE_DIR/
 
 echo "📥 Installing dependencies..."
-ssh -i $SSH_KEY $POD_SSH << 'ENDSSH'
+ssh -i $SSH_KEY -p 29629 root@38.128.232.104 << 'ENDSSH'
 cd /workspace/shizhengpt
 
 # Install Python dependencies
@@ -34,7 +34,7 @@ echo "✓ Dependencies installed"
 ENDSSH
 
 echo "🔥 Starting FastAPI server..."
-ssh -i $SSH_KEY $POD_SSH << 'ENDSSH'
+ssh -i $SSH_KEY -p 29629 root@38.128.232.104 << 'ENDSSH'
 cd /workspace/shizhengpt
 
 # Kill existing server if running
@@ -55,7 +55,7 @@ echo "🌐 Your API will be available at:"
 echo "   https://3wzca59jx2ytll-8000.proxy.runpod.net"
 echo ""
 echo "📊 Monitor server logs:"
-echo "   ssh -i $SSH_KEY $POD_SSH 'tail -f /workspace/shizhengpt/server.log'"
+echo "   ssh -i $SSH_KEY -p 29629 root@38.128.232.104 'tail -f /workspace/shizhengpt/server.log'"
 echo ""
 echo "🧪 Test health endpoint:"
 echo "   curl https://3wzca59jx2ytll-8000.proxy.runpod.net/health"

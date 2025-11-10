@@ -17,7 +17,6 @@ export default function Chat() {
   const [error, setError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState<Blob | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -78,24 +77,28 @@ export default function Chat() {
 
   const handleCameraCapture = (blob: Blob) => {
     setCapturedImage(blob);
-    const url = URL.createObjectURL(blob);
-    setImagePreviewUrl(url);
     setShowCamera(false);
   };
 
   const handleImageSubmit = async () => {
     if (!capturedImage || isLoading) return;
 
+    // Create URL only when submitting
+    const url = URL.createObjectURL(capturedImage);
+
     const userMessage: Message = {
       id: `user_${Date.now()}`,
       role: 'user',
       content: 'Tongue Image / 舌苔照片',
-      imageUrl: imagePreviewUrl || undefined
+      imageUrl: url
     };
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     setError(null);
+
+    // Clear the captured image immediately after adding to messages
+    setCapturedImage(null);
 
     try {
       const formData = new FormData();
@@ -120,13 +123,6 @@ export default function Chat() {
           id: `msg_${Date.now()}`
         }
       ]);
-
-      // Clear image after successful submission
-      setCapturedImage(null);
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl);
-        setImagePreviewUrl(null);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze image');
       console.error('Vision error:', err);
@@ -137,10 +133,6 @@ export default function Chat() {
 
   const clearImage = () => {
     setCapturedImage(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-      setImagePreviewUrl(null);
-    }
   };
 
   return (
@@ -217,26 +209,6 @@ export default function Chat() {
       {/* Input Area */}
       <div className="border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4 bg-white">
         <div className="max-w-3xl mx-auto">
-          {/* Image Preview */}
-          {imagePreviewUrl && (
-            <div className="mb-3 relative inline-block">
-              <img
-                src={imagePreviewUrl}
-                alt="Captured tongue"
-                className="rounded-lg max-h-32 sm:max-h-40 max-w-full h-auto border border-gray-200"
-              />
-              <button
-                onClick={clearImage}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
-                aria-label="Remove image"
-              >
-                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
             <button
               type="button"

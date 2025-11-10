@@ -1,18 +1,19 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export default function Chat() {
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-    }),
-  });
-
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -22,19 +23,53 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const input = inputRef.current?.value;
-    if (input?.trim()) {
-      sendMessage({ role: 'user', content: input });
-      if (inputRef.current) {
-        inputRef.current.value = '';
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: `user_${Date.now()}`,
+      role: 'user',
+      content: input.trim()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('Sending request with messages:', [...messages, userMessage]);
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: `chat_${Date.now()}`,
+          messages: [...messages, userMessage]
+        })
+      });
+
+      console.log('Response status:', response.status, response.ok);
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('Received data:', data);
+      console.log('Setting messages to:', data.messages);
+
+      setMessages(data.messages || []);
+      console.log('Messages state updated');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get response');
+      console.error('Chat error:', err);
+    } finally {
+      console.log('Setting isLoading to false');
+      setIsLoading(false);
     }
   };
-
-  const isLoading = status === 'streaming' || status === 'submitted';
-  const hasError = status === 'error';
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
@@ -78,7 +113,7 @@ export default function Chat() {
             </div>
           ))}
 
-          {isLoading && messages[messages.length - 1]?.role === 'user' && (
+          {isLoading && (
             <div className="flex justify-start">
               <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-white border border-emerald-100 shadow-sm">
                 <div className="text-xs font-semibold mb-1 text-gray-500">神针GPT</div>
@@ -91,11 +126,12 @@ export default function Chat() {
             </div>
           )}
 
-          {hasError && (
+          {error && (
             <div className="flex justify-center">
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg max-w-md">
                 <p className="font-semibold">连接错误 / Connection Error</p>
                 <p className="text-sm mt-1">无法连接到服务器，请确认后端服务正在运行</p>
+                <p className="text-xs mt-1 opacity-75">{error}</p>
               </div>
             </div>
           )}
@@ -109,15 +145,16 @@ export default function Chat() {
         <div className="max-w-4xl mx-auto">
           <form onSubmit={handleSubmit} className="flex gap-3">
             <input
-              ref={inputRef}
               type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               placeholder="请描述您的症状... (例如：手脚冰凉，经常怕冷)"
               className="flex-1 px-4 py-3 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               disabled={isLoading}
             />
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !input.trim()}
               className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? '发送中...' : '发送'}
@@ -126,7 +163,10 @@ export default function Chat() {
 
           {messages.length > 0 && (
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setMessages([]);
+                setError(null);
+              }}
               className="mt-3 text-sm text-emerald-600 hover:text-emerald-700 font-medium"
             >
               清空对话 / Clear Conversation

@@ -68,29 +68,51 @@ return {
 
 ## Implementation Pattern
 
-**New endpoint signature:**
+**Actual implementation (changed during development):**
+
+Using `Request` object to manually parse multipart form avoids FastAPI validation issues with binary data:
+
 ```python
 @app.post("/v1/vision/analyze")
-async def vision_analyze(
-    image: UploadFile = File(None),          # Optional for multipart
-    query: str = Form(default="请从中医角度解读这张舌苔。"),
-    request_body: VisionRequest = None       # Optional for JSON
-):
-    # Handle multipart
-    if image:
-        image_data = await image.read()
+async def vision_analyze(request: Request):
+    """Analyze tongue image for TCM diagnosis via multipart/form-data"""
+    if not model_loaded:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    start_time = time.time()
+    query_text = "请从中医角度解读这张舌苔。分析舌色、苔色、舌形、润燥等特征，并给出对应的中医证型和调理建议。"
+
+    try:
+        # Parse multipart form data manually
+        form = await request.form()
+        image_file = form.get("image")
+        query_form = form.get("query")
+
+        if not image_file:
+            raise HTTPException(status_code=400, detail="No image provided")
+
+        if query_form:
+            query_text = str(query_form)
+
+        # Handle image upload
+        print(f"📸 Multipart upload: {image_file.filename}, {image_file.content_type}")
+        image_data = await image_file.read()
         pil_image = Image.open(BytesIO(image_data))
 
-    # Handle base64 JSON (backward compatibility)
-    elif request_body and request_body.image:
-        image_data = base64.b64decode(request_body.image.split(',')[-1])
-        pil_image = Image.open(BytesIO(image_data))
+        # ... existing vision processing logic ...
 
-    else:
-        raise HTTPException(400, "No image provided")
-
-    # ... existing vision processing logic ...
+        return {
+            "diagnosis": response_text,  # Changed from "analysis"
+            "success": True,
+            "model": "ShizhenGPT-32B-VL",
+            "processing_time_seconds": round(elapsed, 2)
+        }
 ```
+
+**Why this approach:**
+- FastAPI's `File()` and `Form()` caused `UnicodeDecodeError` when trying to encode validation errors with binary data
+- Direct `Request.form()` parsing avoids the validation layer issue
+- Simpler error handling without FastAPI trying to JSON-encode binary data
 
 ## Risks / Trade-offs
 
@@ -108,19 +130,37 @@ async def vision_analyze(
 
 ## Migration Plan
 
-No migration needed - this is a backward-compatible addition. Existing base64 JSON clients continue working unchanged.
+**⚠️ BREAKING CHANGE:** This ended up being a breaking change, not backward-compatible.
+- Base64 JSON format removed (multipart/form-data only)
+- Reason: FastAPI validation layer conflicts with binary data
 
-**Rollout:**
-1. Deploy backend with multipart support
-2. Test with frontend camera capture
-3. Verify base64 JSON clients still work
-4. Document both formats in API docs
+**Actual rollout:**
+1. ✅ Fixed environment variable ordering (HF_HOME before imports)
+2. ✅ Cleaned /root/.cache to free disk space
+3. ✅ Deployed backend with multipart support to RunPod
+4. ✅ Updated frontend API route response parsing
+5. ✅ Tested with curl and frontend proxy
+6. ✅ Verified model loads from /workspace/models cache
 
-## Open Questions
+**Performance metrics:**
+- Model load time: ~2 minutes (cached from /workspace)
+- Inference time: ~53 seconds per image
+- VRAM usage: 66.91GB / 85.1GB (78.63%)
+
+## Open Questions (RESOLVED)
 
 1. Should we add image validation (max dimensions, format checking)?
-   - **Answer:** Not for MVP, PIL handles most formats gracefully
+   - **Answer:** ✅ Not for MVP, PIL handles most formats gracefully
 2. Support multiple images per request?
-   - **Answer:** No, keep single image per diagnosis for simplicity
+   - **Answer:** ✅ No, keep single image per diagnosis for simplicity
 3. Add request logging for debugging?
-   - **Answer:** Yes, log image size and format for monitoring
+   - **Answer:** ✅ Yes, implemented - logs image size, format, and processing time
+4. How to handle FastAPI validation errors with binary data?
+   - **Answer:** ✅ Use `Request` object directly, parse form manually to bypass validation layer
+
+## Lessons Learned
+
+1. **Environment variables MUST be set before imports** - Setting `HF_HOME` after importing transformers has no effect
+2. **FastAPI File() validation issues** - Binary data in validation errors causes `UnicodeDecodeError`, use `Request.form()` instead
+3. **Disk space on RunPod** - Root overlay filesystem fills up, always use `/workspace` for large files
+4. **Model caching** - 63GB model in /workspace/models reduces load time from 15-20min to ~2min

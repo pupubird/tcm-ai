@@ -33,12 +33,12 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json();
-    const diagnosis = data.analysis || data.response || data.text || '';
+    const diagnosis = data.diagnosis || '';
 
     return new Response(
       JSON.stringify({
         diagnosis,
-        success: true
+        success: data.success || true
       }),
       {
         status: 200,

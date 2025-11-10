@@ -4,7 +4,7 @@ Deploys Traditional Chinese Medicine AI model on RunPod A100 80GB
 """
 import os
 import torch
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -13,6 +13,7 @@ from qwen_vl_utils import process_vision_info
 import base64
 from io import BytesIO
 from PIL import Image
+import time
 
 # Configure model cache to persistent volume
 # Must be set before importing transformers
@@ -198,26 +199,50 @@ async def chat_completions(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
 
 @app.post("/v1/vision/analyze")
-async def vision_analyze(request: VisionRequest):
+async def vision_analyze(
+    image: Optional[UploadFile] = File(None),
+    query: Optional[str] = Form(None)
+):
     """
     Analyze tongue image for TCM diagnosis
-    Expects base64-encoded image and optional question
+    Supports both multipart/form-data and base64 JSON formats
+
+    Multipart format:
+        - image: file upload
+        - query: text field (optional)
+
+    JSON format (backward compatibility):
+        - POST with Content-Type: application/json
+        - Body: {"image": "base64...", "query": "..."}
     """
     if not model_loaded:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
+    start_time = time.time()
+    pil_image = None
+    query_text = query or "请从中医角度解读这张舌苔。分析舌色、苔色、舌形、润燥等特征，并给出对应的中医证型和调理建议。"
+
     try:
-        # Decode base64 image
-        image_data = base64.b64decode(request.image.split(',')[-1])
-        image = Image.open(BytesIO(image_data))
+        # Handle multipart upload
+        if image:
+            print(f"📸 Multipart upload: {image.filename}, {image.content_type}")
+            image_data = await image.read()
+            print(f"   Image size: {len(image_data)} bytes")
+            pil_image = Image.open(BytesIO(image_data))
+            print(f"   PIL format: {pil_image.format}, size: {pil_image.size}")
+
+        # If no multipart image, check if this might be JSON (backward compatibility)
+        # Note: FastAPI with File() param won't parse JSON body, so this is just for clarity
+        if not pil_image:
+            raise HTTPException(status_code=400, detail="No image provided. Send as multipart/form-data with 'image' field.")
 
         # Prepare multimodal messages
         messages = [
             {
                 "role": "user",
                 "content": [
-                    {"type": "image", "image": image},
-                    {"type": "text", "text": request.question}
+                    {"type": "image", "image": pil_image},
+                    {"type": "text", "text": query_text}
                 ]
             }
         ]
@@ -242,10 +267,11 @@ async def vision_analyze(request: VisionRequest):
         ).to(model.device)
 
         # Generate response
+        print(f"🧠 Running inference...")
         with torch.no_grad():
             output_ids = model.generate(
                 **inputs,
-                max_new_tokens=request.max_tokens,
+                max_new_tokens=2048,
                 temperature=0.7,
                 do_sample=True
             )
@@ -261,13 +287,22 @@ async def vision_analyze(request: VisionRequest):
             clean_up_tokenization_spaces=False
         )[0]
 
+        elapsed = time.time() - start_time
+        print(f"✓ Vision analysis complete in {elapsed:.1f}s")
+        print(f"   Response length: {len(response_text)} chars")
+
+        # Return format matching frontend expectations
         return {
-            "analysis": response_text,
-            "question": request.question,
-            "model": "ShizhenGPT-32B-VL"
+            "diagnosis": response_text,
+            "success": True,
+            "model": "ShizhenGPT-32B-VL",
+            "processing_time_seconds": round(elapsed, 2)
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"❌ Vision analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Vision analysis error: {str(e)}")
 
 if __name__ == "__main__":

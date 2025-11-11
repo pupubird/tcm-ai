@@ -70,6 +70,10 @@ export class MessageHandler {
 
     console.log(`[${phone}] Text: ${text.substring(0, 50)}...`);
 
+    // Show typing indicator
+    const chat = await msg.getChat();
+    await chat.sendStateTyping();
+
     try {
       // Get session with conversation history
       const session = this.sessionStore.getSession(phone);
@@ -132,6 +136,10 @@ export class MessageHandler {
 
   private async handleImageMessage(msg: WhatsAppMessage, phone: string): Promise<void> {
     console.log(`[${phone}] Image received`);
+
+    // Show typing indicator
+    const chat = await msg.getChat();
+    await chat.sendStateTyping();
 
     try {
       // Download media

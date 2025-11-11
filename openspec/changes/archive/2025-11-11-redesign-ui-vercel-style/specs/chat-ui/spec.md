@@ -21,6 +21,8 @@ The system SHALL visually distinguish user and assistant messages using a clean,
 - **WHEN** viewed on desktop (>1024px)
 - **THEN** messages are max 65% of container width
 
+## ADDED Requirements
+
 ### Requirement: Visual Design System
 The system SHALL use a neutral, professional design system inspired by modern web applications.
 
@@ -39,8 +41,6 @@ The system SHALL use a neutral, professional design system inspired by modern we
 - **WHEN** rendering UI components
 - **THEN** use consistent spacing scale and proper whitespace
 - **AND** center content with max-width container (max-w-3xl or similar)
-
-## ADDED Requirements
 
 ### Requirement: Mobile Responsive Images
 The system SHALL ensure images never overflow their containers on any screen size.
@@ -101,7 +101,3 @@ The system SHALL not display specific AI model names or branding.
 - **THEN** document title and metadata describe generic "TCM Consultation" functionality
 - **AND** no ShizhenGPT branding in meta tags or page title
 
-## REMOVED Requirements
-
-### Requirement: ~~Medical Aesthetic~~
-The previous requirement for "professional medical aesthetic suitable for healthcare applications" with emerald/teal colors is removed. The new design uses a generic, professional aesthetic not specifically medical-themed.

@@ -9,7 +9,7 @@ Traditional Chinese Medicine AI diagnostic system powered by ShizhenGPT-32B-VL m
 - **Pod ID**: `3wzca59jx2ytll`
 - **GPU**: A100 PCIe 80GB
 - **API Endpoint**: `https://3wzca59jx2ytll-8000.proxy.runpod.net`
-- **SSH**: `ssh root@38.128.232.104 -p 29629`
+- **SSH**: `ssh root@38.128.232.104 -p 35654`
 
 ### API Documentation
 
@@ -113,22 +113,67 @@ The 32B model requires 70-75GB VRAM and cannot run locally on MacBook. For local
 ### Monitoring Server
 ```bash
 # View logs
-ssh root@38.128.232.104 -p 29629 'tail -f /workspace/shizhengpt/server.log'
+ssh root@38.128.232.104 -p 35654 'tail -f /workspace/shizhengpt/server.log'
 
 # Check process
-ssh root@38.128.232.104 -p 29629 'ps aux | grep python'
+ssh root@38.128.232.104 -p 35654 'ps aux | grep python'
 
 # Check VRAM usage
-ssh root@38.128.232.104 -p 29629 'nvidia-smi'
+ssh root@38.128.232.104 -p 35654 'nvidia-smi'
 ```
 
 ### Restarting Server
+
+**Standard restart** (when dependencies are already installed):
 ```bash
-ssh root@38.128.232.104 -p 29629 << 'EOF'
+ssh root@38.128.232.104 -p 35654 << 'EOF'
 cd /workspace/shizhengpt
 pkill -f "python.*server.py"
 nohup python -u server.py > server.log 2>&1 &
 EOF
+```
+
+**Full restart** (after pod restart or missing dependencies):
+```bash
+ssh root@38.128.232.104 -p 35654 << 'EOF'
+cd /workspace/shizhengpt
+
+# Install dependencies if missing
+pip install --break-system-packages -r requirements.txt
+
+# Restart server
+pkill -f "python.*server.py"
+nohup python -u server.py > server.log 2>&1 &
+
+# Verify process started
+sleep 2
+ps aux | grep "python.*server.py" | grep -v grep
+EOF
+```
+
+**Verify server is ready**:
+```bash
+# Check loading progress
+ssh root@38.128.232.104 -p 35654 'tail -f /workspace/shizhengpt/server.log'
+
+# Test health endpoint (wait 2-3 minutes for model to load)
+curl https://3wzca59jx2ytll-8000.proxy.runpod.net/health
+```
+
+Expected output after model loads (2-3 minutes):
+```json
+{
+  "status": "healthy",
+  "model_loaded": true,
+  "model_name": "ShizhenGPT-32B-VL",
+  "device": "cuda:0",
+  "vram": {
+    "allocated_gb": 66.91,
+    "reserved_gb": 68.47,
+    "total_gb": 85.1,
+    "utilization_percent": 78.63
+  }
+}
 ```
 
 ## 💰 Cost Management
@@ -144,7 +189,7 @@ EOF
 
 ```bash
 # Via SSH
-ssh root@38.128.232.104 -p 29629 'shutdown -h now'
+ssh root@38.128.232.104 -p 35654 'shutdown -h now'
 
 # Or use RunPod dashboard
 # Click "Stop" button on pod page
@@ -160,7 +205,7 @@ ssh root@38.128.232.104 -p 29629 'shutdown -h now'
 ### Model Not Loading
 Check logs for download progress:
 ```bash
-ssh root@38.128.232.104 -p 29629 'tail -f /workspace/shizhengpt/server.log'
+ssh root@38.128.232.104 -p 35654 'tail -f /workspace/shizhengpt/server.log'
 ```
 
 First download takes 15-20 minutes. Look for:
@@ -185,7 +230,7 @@ RunPod proxy needs 2-3 minutes after server starts to expose port 8000. Wait and
 ### Port 8000 Not Ready
 Check if server is listening:
 ```bash
-ssh root@38.128.232.104 -p 29629 'netstat -tlnp | grep 8000'
+ssh root@38.128.232.104 -p 35654 'netstat -tlnp | grep 8000'
 ```
 
 Should show:

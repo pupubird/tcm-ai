@@ -28,7 +28,7 @@
 - [x] 4.5 Add CORS middleware for frontend access
 
 ## 5. RunPod Deployment
-- [x] 5.1 SSH into RunPod instance (root@38.128.232.104:29629)
+- [x] 5.1 SSH into RunPod instance (root@38.128.232.104:35654)
 - [x] 5.2 Install dependencies via pip (--break-system-packages flag)
 - [x] 5.3 Upload or clone backend code (uploaded via scp)
 - [x] 5.4 Download ShizhenGPT-32B-VL to persistent volume (COMPLETED: 64GB downloaded)
